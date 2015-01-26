@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Snakejs</title>
+</head>
+<body>
+    <canvas id="snakegame" width="419" height="398"/>
+    <script src="js/snake.js"></script>
+    <script>
+        var game = new SnakeGame({
+                                    field: '#2E3340',
+                                    food: '#9FFCB9',
+                                    snake: '#C4B9A9'
+                                });
+        game.init();
+    </script>
+    <style>
+        canvas {
+            margin: auto;
+            display: block;
+        }
+    </style>
+</body></html>
