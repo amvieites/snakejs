@@ -57,7 +57,9 @@ function Snake(snakeGame) {
     "use strict";
     this.game = snakeGame;
     this.direction = LEFT;
-    this.points = [{x: 13, y: 9},
+    var now = new Date();
+    this.previousTime = now.getTime();
+    this.points = [{x: 13, y: 9, dir: LEFT},
                   {x: 14, y: 9},
                   {x: 15, y: 9},
                   {x: 16, y: 9},
@@ -68,14 +70,27 @@ function Snake(snakeGame) {
 Snake.prototype.update = function () {
     "use strict";
     
-    if (keys[KEYLEFT]) { this.direction = LEFT; }
-    if (keys[KEYUP]) { this.direction = UP; }
-    if (keys[KEYRIGHT]) { this.direction = RIGHT; }
-    if (keys[KEYDOWN]) { this.direction = DOWN; }
-    
-    switch (this.direction) {
-    case LEFT:
-    break;
+    if (new Date().getTime() - this.previousTime > 500) {
+        this.move();
+        this.previousTime = new Date().getTime();
+    }
+};
+
+Snake.prototype.move = function () {
+    "use strict";
+    var i;
+    for (i = this.points.length - 1; i > 0; i = i - 1) {
+        this.points[i].x = this.points[i - 1].x;
+        this.points[i].y = this.points[i - 1].y;
+    }
+    if (this.points[0].dir === LEFT) {
+        this.points[0].x -= 1;
+    } else if (this.points[0].dir === RIGHT) {
+        this.points[0].x += 1;
+    } else if (this.points[0].dir === UP) {
+        this.points[0].y -= 1;
+    } else if (this.points[0].dir === DOWN) {
+        this.points[0].y += 1;
     }
 };
 
@@ -107,15 +122,21 @@ function SnakeGame(skin) {
     this.skin = skin;
 }
 
+function keydownLogic(event, snake) {
+    "use strict";
+    if (event.keyCode === KEYLEFT && snake.points[0].dir !== RIGHT) { snake.points[0].dir = LEFT; }
+    if (event.keyCode === KEYUP && snake.points[0].dir !== UP) { snake.points[0].dir = UP; }
+    if (event.keyCode === KEYRIGHT && snake.points[0].dir !== LEFT) { snake.points[0].dir = RIGHT; }
+    if (event.keyCode === KEYDOWN && snake.points[0].dir !== UP) { snake.points[0].dir = DOWN; }
+}
+
 SnakeGame.prototype.init = function () {
     "use strict";
     this.snake = new Snake(this);
-    
-    document.addEventListener("keydown", function (event) {
-        keys[event.keyCode] = true;
-    });
-    document.addEventListener("keyup", function (event) {
-        delete keys[event.keyCode];
+    this.playing = true;
+    var snake = this.snake;
+    document.addEventListener("keydown", function () {
+        keydownLogic(event, snake);
     });
     
     this.loop();
@@ -148,8 +169,10 @@ SnakeGame.prototype.update = function () {
 SnakeGame.prototype.loop = function () {
     "use strict";
     
-    this.update();
-    this.draw();
+    if (this.playing) {
+        this.update();
+        this.draw();
+    }
     
     window.requestAnimationFrame(this.loop.bind(this), canvas);
 };
