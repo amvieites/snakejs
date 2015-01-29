@@ -50,6 +50,19 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
         ctx.fill();
     }
 }
+
+function addToArray(array, element) {
+    "use strict";
+    
+    var i, newArray = [array.length + 1];
+    
+    for (i = 0; i < array.length; i = i + 1) {
+        newArray[i] = array[i];
+    }
+    newArray[array.length] = element;
+    
+    return newArray;
+}
 /*************************************/
 
 
@@ -71,27 +84,60 @@ Snake.prototype.update = function () {
     "use strict";
     
     if (new Date().getTime() - this.previousTime > 500) {
+        this.enlarge();
         this.move();
         this.previousTime = new Date().getTime();
     }
 };
 
+Snake.prototype.enlarge = function () {
+    "use strict";
+    
+    this.points = addToArray(this.points, {x: this.points[this.points.length - 1].x, y: this.points[this.points.length - 1].y});
+};
+
+Snake.prototype.checkEdges = function (new_point) {
+    "use strict";
+    
+    return (new_point.x >= 0) && (new_point.x < 20) && (new_point.y >= 0) && (new_point.y < 20);
+};
+
+Snake.prototype.checkSelf = function (new_point) {
+    "use strict";
+    
+    var i;
+    for (i = 1; i < this.points.length; i = i + 1) {
+        if (this.points[i].x === new_point.x && this.points[i].y === new_point.y) {
+            return false;
+        }
+    }
+    return true;
+};
+
 Snake.prototype.move = function () {
     "use strict";
-    var i;
-    for (i = this.points.length - 1; i > 0; i = i - 1) {
-        this.points[i].x = this.points[i - 1].x;
-        this.points[i].y = this.points[i - 1].y;
-    }
+    var i, stop, new_point;
+    
     if (this.points[0].dir === LEFT) {
-        this.points[0].x -= 1;
+        new_point = {x: this.points[0].x - 1, y: this.points[0].y, dir: this.points[0].dir};
     } else if (this.points[0].dir === RIGHT) {
-        this.points[0].x += 1;
+        new_point = {x: this.points[0].x + 1, y: this.points[0].y, dir: this.points[0].dir};
     } else if (this.points[0].dir === UP) {
-        this.points[0].y -= 1;
+        new_point = {x: this.points[0].x, y: this.points[0].y - 1, dir: this.points[0].dir};
     } else if (this.points[0].dir === DOWN) {
-        this.points[0].y += 1;
+        new_point = {x: this.points[0].x, y: this.points[0].y + 1, dir: this.points[0].dir};
     }
+    
+    if (this.checkEdges(new_point) && this.checkSelf(new_point)) {
+        for (i = this.points.length - 1; i > 0; i = i - 1) {
+            this.points[i].x = this.points[i - 1].x;
+            this.points[i].y = this.points[i - 1].y;
+        }
+        this.points[0] = new_point;
+    } else {
+        this.game.playing = false;
+    }
+
 };
 
 Snake.prototype.draw = function () {
@@ -104,15 +150,14 @@ Snake.prototype.draw = function () {
         if (this.points.hasOwnProperty(point)) {
             roundRect(ctx, 1 + this.points[point].x + this.points[point].x * 20,
                       1 + this.points[point].y + this.points[point].y * 20,
-                      22, 18, 3, true, false);
+                      18, 18, 3, true, false);
         }
     }
     
     // Draw eyes
     ctx.fillStyle = this.game.skin.food;
     ctx.beginPath();
-    ctx.arc(this.points[0].x + this.points[0].x * 20 + 5, this.points[0].y + this.points[0].y * 20 + 6, 2, 0, 2 * Math.PI, false);
-    ctx.arc(this.points[0].x + this.points[0].x * 20 + 5, this.points[0].y + this.points[0].y * 20 + 14, 2, 0, 2 * Math.PI, false);
+    ctx.arc(this.points[0].x + this.points[0].x * 20 + 10, this.points[0].y + this.points[0].y * 20 + 10, 2, 0, 2 * Math.PI, false);
     ctx.fill();
     
 };
