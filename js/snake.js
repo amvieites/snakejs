@@ -77,16 +77,21 @@ function Snake(snakeGame) {
                   {x: 15, y: 9},
                   {x: 16, y: 9},
                   {x: 17, y: 9}];
-    
 }
+
+Snake.prototype.eats = function () {
+    "use strict";
+    
+    return false; //TODO this.game.isFruit(this.points[0].x, this.points[0].y);
+};
 
 Snake.prototype.update = function () {
     "use strict";
     
+    if (this.eats()) {
+        this.enlarge();
+    }
     if (new Date().getTime() - this.previousTime > 250) {
-        if ((new Date().getTime() - this.previousTime) % 2 === 0) {
-            this.enlarge();
-        }
         this.move();
         // TODO score
         this.previousTime = new Date().getTime();
@@ -172,16 +177,23 @@ function SnakeGame(skin) {
 
 function keydownLogic(event, snake) {
     "use strict";
-    if (event.keyCode === KEYLEFT && snake.points[0].dir !== RIGHT) { snake.points[0].dir = LEFT; }
-    if (event.keyCode === KEYUP && snake.points[0].dir !== UP) { snake.points[0].dir = UP; }
-    if (event.keyCode === KEYRIGHT && snake.points[0].dir !== LEFT) { snake.points[0].dir = RIGHT; }
-    if (event.keyCode === KEYDOWN && snake.points[0].dir !== UP) { snake.points[0].dir = DOWN; }
+    var dir, coords = {x: snake.points[0].x, y: snake.points[0].y};
+    
+    if (event.keyCode === KEYLEFT) { coords.x -= 1; dir = LEFT; }
+    if (event.keyCode === KEYUP) { coords.y -= 1; dir = UP; }
+    if (event.keyCode === KEYRIGHT) { coords.x += 1; dir = RIGHT; }
+    if (event.keyCode === KEYDOWN) { coords.y += 1; dir = DOWN; }
+    
+    if ((coords.x !== snake.points[1].x) || (coords.y !== snake.points[1].y)) {
+        snake.points[0].dir = dir;
+    }
 }
 
 SnakeGame.prototype.init = function () {
     "use strict";
     this.snake = new Snake(this);
     this.playing = true;
+    this.fruits = [];
     var snake = this.snake;
     document.addEventListener("keydown", function () {
         keydownLogic(event, snake);
@@ -212,6 +224,8 @@ SnakeGame.prototype.draw = function () {
 
 SnakeGame.prototype.update = function () {
     "use strict";
+    
+    // TODO randoms
 };
 
 SnakeGame.prototype.loop = function () {
