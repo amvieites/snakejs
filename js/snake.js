@@ -83,9 +83,12 @@ function Snake(snakeGame) {
 Snake.prototype.update = function () {
     "use strict";
     
-    if (new Date().getTime() - this.previousTime > 500) {
-        this.enlarge();
+    if (new Date().getTime() - this.previousTime > 250) {
+        if ((new Date().getTime() - this.previousTime) % 2 === 0) {
+            this.enlarge();
+        }
         this.move();
+        // TODO score
         this.previousTime = new Date().getTime();
     }
 };
