@@ -81,8 +81,17 @@ function Snake(snakeGame) {
 
 Snake.prototype.eats = function () {
     "use strict";
+    var m;
     
-    return false; //TODO this.game.isFruit(this.points[0].x, this.points[0].y);
+    for (m in this.game.mice) {
+        if (this.game.mice.hasOwnProperty(m)) {
+            if ((this.game.mice[m].x === this.points[0].x) && (this.game.mice[m].y === this.points[0].y)) {
+                delete this.game.mice[m];
+                return true;
+            }
+        }
+    }
+    return false;
 };
 
 Snake.prototype.update = function () {
@@ -170,6 +179,27 @@ Snake.prototype.draw = function () {
     
 };
 
+function Mouse(game, x, y) {
+    "use strict";
+    this.x = x;
+    this.y = y;
+    this.game = game;
+    this.created = new Date().getTime();
+}
+
+Mouse.prototype.update = function () {
+    "use strict";
+};
+
+Mouse.prototype.draw = function () {
+    "use strict";
+    
+    ctx.fillStyle = this.game.skin.food;
+    ctx.beginPath();
+    ctx.arc(this.x + this.x * 20 + 10, this.y + this.y * 20 + 10, 2, 0, 2 * Math.PI, false);
+    ctx.fill();
+};
+
 function SnakeGame(skin) {
     "use strict";
     this.skin = skin;
@@ -193,7 +223,9 @@ SnakeGame.prototype.init = function () {
     "use strict";
     this.snake = new Snake(this);
     this.playing = true;
-    this.fruits = [];
+    this.mice = new Array(3);
+    this.lastMouse = 3;
+    this.lastMouseTime = new Date().getTime();
     var snake = this.snake;
     document.addEventListener("keydown", function () {
         keydownLogic(event, snake);
@@ -216,6 +248,12 @@ SnakeGame.prototype.draw = function () {
         }
     }
     
+    for (i = 0; i < this.mice.length; i = i + 1) {
+        if (this.mice[i] !== undefined) {
+            this.mice[i].update();
+            this.mice[i].draw();
+        }
+    }
     this.snake.update();
     this.snake.draw();
     
@@ -224,8 +262,20 @@ SnakeGame.prototype.draw = function () {
 
 SnakeGame.prototype.update = function () {
     "use strict";
+    var m;
     
-    // TODO randoms
+    if (new Date().getTime() - this.lastMouseTime > 4000) {
+        this.lastMouseTime = new Date().getTime();
+        this.lastMouse = this.lastMouse + 1;
+        this.mice[this.lastMouse % this.mice.length] = new Mouse(this, Math.floor((Math.random() * 20) + 1), Math.floor((Math.random() * 20) + 1));
+    }
+    for (m in this.mice) {
+        if (this.mice.hasOwnProperty(m)) {
+            if (new Date().getTime() - this.mice[m].created > 5000) {
+                delete this.mice[m];
+            }
+        }
+    }
 };
 
 SnakeGame.prototype.loop = function () {
