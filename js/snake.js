@@ -1,11 +1,5 @@
 var KEYLEFT = 37, KEYUP = 38, KEYRIGHT = 39, KEYDOWN = 40;
 var LEFT = 1, UP = 2, RIGHT = 3, DOWN = 4;
-var keys = {};
-var canvas = document.getElementById("snakegame");
-var ctx = canvas.getContext('2d');
-var WIDTH = parseInt(canvas.getAttribute("width"), 10);
-var HEIGHT = parseInt(canvas.getAttribute("height"), 10);
-var score;
 
 
 /*************************************/
@@ -66,43 +60,44 @@ function addToArray(array, element) {
 /*************************************/
 
 
-function Snake(snakeGame) {
+function Snake(snakeGame, x, y) {
     "use strict";
     this.game = snakeGame;
-    this.direction = LEFT;
+    this.direction = DOWN;
     var now = new Date();
     this.previousTime = now.getTime();
-    this.points = [{x: 13, y: 9, dir: LEFT},
-                  {x: 14, y: 9},
-                  {x: 15, y: 9},
-                  {x: 16, y: 9},
-                  {x: 17, y: 9}];
+    this.points = [{x: x, y: y, dir: DOWN},
+                  {x: x, y: y - 1},
+                  {x: x + 1, y: y - 1},
+                  {x: x + 1, y: y}];
 }
 
 Snake.prototype.eats = function () {
     "use strict";
-    var m;
+    var m, mouse;
     
     for (m in this.game.mice) {
         if (this.game.mice.hasOwnProperty(m)) {
             if ((this.game.mice[m].x === this.points[0].x) && (this.game.mice[m].y === this.points[0].y)) {
+                mouse = this.game.mice[m];
                 delete this.game.mice[m];
-                return true;
+                return mouse;
             }
         }
     }
-    return false;
 };
 
 Snake.prototype.update = function () {
     "use strict";
+    var eaten;
     
-    if (this.eats()) {
+    eaten = this.eats();
+    if (eaten !== undefined) {
         this.enlarge();
+        this.game.score(eaten);
     }
     if (new Date().getTime() - this.previousTime > 250) {
         this.move();
-        // TODO score
         this.previousTime = new Date().getTime();
     }
 };
@@ -116,7 +111,7 @@ Snake.prototype.enlarge = function () {
 Snake.prototype.checkEdges = function (new_point) {
     "use strict";
     
-    return (new_point.x >= 0) && (new_point.x < 20) && (new_point.y >= 0) && (new_point.y < 20);
+    return (new_point.x >= 0) && (new_point.x < this.game.columns) && (new_point.y >= 0) && (new_point.y < this.game.rows);
 };
 
 Snake.prototype.checkSelf = function (new_point) {
@@ -162,20 +157,20 @@ Snake.prototype.draw = function () {
     var point;
     
     // Draw body
-    ctx.fillStyle = this.game.skin.snake;
+    this.game.ctx.fillStyle = this.game.playing ? this.game.skin.snake : this.game.skin.deadsnake;
     for (point in this.points) {
         if (this.points.hasOwnProperty(point)) {
-            roundRect(ctx, 1 + this.points[point].x + this.points[point].x * 20,
-                      1 + this.points[point].y + this.points[point].y * 20,
-                      18, 18, 3, true, false);
+            roundRect(this.game.ctx, 1 + this.points[point].x + this.points[point].x * this.game.SIDE,
+                      1 + this.points[point].y + this.points[point].y * this.game.SIDE,
+                      this.game.SIDE - 2, this.game.SIDE - 2, 3, true, false);
         }
     }
     
     // Draw eyes
-    ctx.fillStyle = this.game.skin.food;
-    ctx.beginPath();
-    ctx.arc(this.points[0].x + this.points[0].x * 20 + 10, this.points[0].y + this.points[0].y * 20 + 10, 2, 0, 2 * Math.PI, false);
-    ctx.fill();
+    this.game.ctx.fillStyle = this.game.playing ? this.game.skin.food : this.game.skin.deadeye;
+    this.game.ctx.beginPath();
+    this.game.ctx.arc(this.points[0].x + this.points[0].x * this.game.SIDE + 10, this.points[0].y + this.points[0].y * this.game.SIDE + 10, 2, 0, 2 * Math.PI, false);
+    this.game.ctx.fill();
     
 };
 
@@ -184,6 +179,7 @@ function Mouse(game, x, y) {
     this.x = x;
     this.y = y;
     this.game = game;
+    this.value = 1000;
     this.created = new Date().getTime();
 }
 
@@ -194,42 +190,54 @@ Mouse.prototype.update = function () {
 Mouse.prototype.draw = function () {
     "use strict";
     
-    ctx.fillStyle = this.game.skin.food;
-    ctx.beginPath();
-    ctx.arc(this.x + this.x * 20 + 10, this.y + this.y * 20 + 10, 2, 0, 2 * Math.PI, false);
-    ctx.fill();
+    this.game.ctx.fillStyle = this.game.skin.food;
+    this.game.ctx.beginPath();
+    this.game.ctx.arc(this.x + this.x * this.game.SIDE + 10, this.y + this.y * this.game.SIDE + 10, 2, 0, 2 * Math.PI, false);
+    this.game.ctx.fill();
 };
 
-function SnakeGame(skin) {
+function keydownLogic(event, game) {
     "use strict";
-    this.skin = skin;
-}
-
-function keydownLogic(event, snake) {
-    "use strict";
-    var dir, coords = {x: snake.points[0].x, y: snake.points[0].y};
+    var dir, coords = {x: game.snake.points[0].x, y: game.snake.points[0].y};
     
     if (event.keyCode === KEYLEFT) { coords.x -= 1; dir = LEFT; }
     if (event.keyCode === KEYUP) { coords.y -= 1; dir = UP; }
     if (event.keyCode === KEYRIGHT) { coords.x += 1; dir = RIGHT; }
     if (event.keyCode === KEYDOWN) { coords.y += 1; dir = DOWN; }
     
-    if ((coords.x !== snake.points[1].x) || (coords.y !== snake.points[1].y)) {
-        snake.points[0].dir = dir;
+    if ((coords.x !== game.snake.points[1].x) || (coords.y !== game.snake.points[1].y)) {
+        game.snake.points[0].dir = dir;
     }
+}
+
+function SnakeGame(skin, canvasid, score_callback) {
+    "use strict";
+    this.SIDE = 20;
+    this.score_function = score_callback;
+    this.skin = skin;
+    this.canvas = document.getElementById(canvasid);
+    this.ctx = this.canvas.getContext('2d');
+    this.width = parseInt(this.canvas.getAttribute("width"), 10);
+    this.height = parseInt(this.canvas.getAttribute("height"), 10);
+    this.columns = Math.floor(this.width / (this.SIDE + 1));
+    this.rows = Math.floor(this.height / (this.SIDE + 1));
+    this.effectiveWidth = this.columns * this.SIDE + this.columns;
+    this.effectiveHeight = this.rows * this.SIDE + this.rows;
+    
+    var game = this;
+    document.addEventListener("keydown", function () {
+        keydownLogic(event, game);
+    });
 }
 
 SnakeGame.prototype.init = function () {
     "use strict";
-    this.snake = new Snake(this);
     this.playing = true;
+    this.lastMouseTime = new Date().getTime();
+    this.scoring = 0;
+    this.snake = new Snake(this, 2, 2);
     this.mice = new Array(3);
     this.lastMouse = 3;
-    this.lastMouseTime = new Date().getTime();
-    var snake = this.snake;
-    document.addEventListener("keydown", function () {
-        keydownLogic(event, snake);
-    });
     
     this.loop();
 };
@@ -238,13 +246,13 @@ SnakeGame.prototype.draw = function () {
     "use strict";
     var i, j;
     
-    ctx.fillStyle = this.skin.snake;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    this.ctx.fillStyle = this.skin.snake;
+    this.ctx.fillRect(0, 0, this.effectiveWidth, this.effectiveHeight);
     
-    ctx.fillStyle = this.skin.field;
-    for (i = 0; i < 20; i = i + 1) {
-        for (j = 0; j < 20; j = j + 1) {
-            ctx.fillRect(i + i * 20, j + j * 20, 20, 20);
+    this.ctx.fillStyle = this.skin.field;
+    for (i = 0; i < this.columns; i = i + 1) {
+        for (j = 0; j < this.rows; j = j + 1) {
+            this.ctx.fillRect(i + i * this.SIDE, j + j * this.SIDE, this.SIDE, this.SIDE);
         }
     }
     
@@ -257,7 +265,9 @@ SnakeGame.prototype.draw = function () {
     this.snake.update();
     this.snake.draw();
     
-    ctx.restore();
+    this.score_function(this.scoring);
+    
+    this.ctx.restore();
 };
 
 SnakeGame.prototype.update = function () {
@@ -267,7 +277,7 @@ SnakeGame.prototype.update = function () {
     if (new Date().getTime() - this.lastMouseTime > 4000) {
         this.lastMouseTime = new Date().getTime();
         this.lastMouse = this.lastMouse + 1;
-        this.mice[this.lastMouse % this.mice.length] = new Mouse(this, Math.floor((Math.random() * 20) + 1), Math.floor((Math.random() * 20) + 1));
+        this.mice[this.lastMouse % this.mice.length] = new Mouse(this, Math.floor((Math.random() * this.columns) + 1), Math.floor((Math.random() * this.rows) + 1));
     }
     for (m in this.mice) {
         if (this.mice.hasOwnProperty(m)) {
@@ -286,7 +296,13 @@ SnakeGame.prototype.loop = function () {
         this.draw();
     }
     
-    window.requestAnimationFrame(this.loop.bind(this), canvas);
+    window.requestAnimationFrame(this.loop.bind(this), this.canvas);
+};
+
+SnakeGame.prototype.score = function (mouse) {
+    "use strict";
+    
+    this.scoring += mouse.value;
 };
 
 

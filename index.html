@@ -5,20 +5,39 @@
 	<title>Snakejs</title>
 </head>
 <body>
-    <canvas id="snakegame" width="419" height="419"/>
+    <div id="scoreboard"></div>
+    <canvas id="snakegame" width="300" height="300"/>
     <script src="js/snake.js"></script>
     <script>
+        function score(score) {
+            "use strict";
+            var div = document.getElementById('scoreboard');
+            div.innerText = score;
+        }
         var game = new SnakeGame({
                                     field: '#2E3340',
                                     food: '#9FFCB9',
-                                    snake: '#C4B9A9'
-                                });
+                                    snake: '#C4B9A9',
+                                    deadsnake: '#aaaaaa',
+                                    deadeye: '#bb1111'
+                                }, "snakegame", score);
         game.init();
     </script>
     <style>
         canvas {
             margin: auto;
             display: block;
+        }
+        #scoreboard {
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0;
+        display: block;
+        width: 500px;
+        text-align: center;
+        font-size: 2em;
+        font-family: verdana;
+        color: #2E3340;
         }
     </style>
 </body></html>
